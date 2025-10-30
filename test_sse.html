@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE Streaming Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        h2 {
+            color: #666;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .event-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .event {
+            padding: 8px;
+            margin: 4px 0;
+            border-radius: 4px;
+        }
+        .event.start {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+        }
+        .event.progress {
+            background: #fff3cd;
+            border-left: 4px solid #856404;
+        }
+        .event.status {
+            background: #d4edda;
+            border-left: 4px solid #155724;
+        }
+        .event.complete {
+            background: #d4edda;
+            border-left: 4px solid #155724;
+            font-weight: bold;
+        }
+        .event.error {
+            background: #f8d7da;
+            border-left: 4px solid #721c24;
+            font-weight: bold;
+        }
+        .event-type {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .event-data {
+            margin-top: 4px;
+            color: #555;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 MCP Server - SSE Streaming Test</h1>
+        <p>Test real-time Server-Sent Events streaming with OAuth 2.0 authentication.</p>
+    </div>
+
+    <div class="container test-section">
+        <h2>🌤️ Weather Streaming Test</h2>
+        <div>
+            <input type="text" id="cityInput" placeholder="Enter city name" value="London">
+            <button id="weatherBtn" onclick="testWeatherStream()">Start Weather Stream</button>
+            <button onclick="clearLog('weatherLog')">Clear Log</button>
+            <span id="weatherStatus" class="status disconnected">Disconnected</span>
+        </div>
+        <div id="weatherLog" class="event-log"></div>
+    </div>
+
+    <div class="container test-section">
+        <h2>📄 File Operations Streaming Test</h2>
+        <div>
+            <select id="operationSelect">
+                <option value="read">Read File</option>
+                <option value="write">Write File</option>
+            </select>
+            <input type="text" id="filepathInput" placeholder="File path" value="test_output/streaming_test.txt">
+            <button id="fileBtn" onclick="testFileStream()">Start File Stream</button>
+            <button onclick="clearLog('fileLog')">Clear Log</button>
+            <span id="fileStatus" class="status disconnected">Disconnected</span>
+        </div>
+        <div id="fileLog" class="event-log"></div>
+    </div>
+
+    <script>
+        // OAuth configuration
+        const OAUTH_CONFIG = {
+            tokenUrl: 'https://dev-zfwa17m1cwa2wepk.us.auth0.com/oauth/token',
+            clientId: 'yhAY6ou6vTcsv6PLH4Dg7jHjRUdkTxfq',
+            clientSecret: 'KSEGJOTGXbcbkYYBhV_jWMRMT-QJnJLg8GRQSdYTXy-bvEWJscANJ6Jxp4KYC4Wm',
+            audience: 'https://mcp-server-api.example.com'
+        };
+
+        let accessToken = null;
+
+        // Get OAuth token
+        async function getAccessToken() {
+            if (accessToken) return accessToken;
+
+            try {
+                const response = await fetch('http://localhost:8000/get-token');
+
+                if (!response.ok) {
+                    throw new Error(`Failed to get token: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                accessToken = data.access_token;
+                return accessToken;
+            } catch (error) {
+                console.error('Failed to get access token:', error);
+                throw error;
+            }
+        }
+
+        // Log event to UI
+        function logEvent(logId, eventType, data) {
+            const log = document.getElementById(logId);
+            const event = document.createElement('div');
+            event.className = `event ${eventType}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            event.innerHTML = `
+                <div><strong>${timestamp}</strong> - <span class="event-type">${eventType.toUpperCase()}</span></div>
+                <div class="event-data">${JSON.stringify(data, null, 2)}</div>
+            `;
+            
+            log.appendChild(event);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Clear log
+        function clearLog(logId) {
+            document.getElementById(logId).innerHTML = '';
+        }
+
+        // Update status
+        function updateStatus(statusId, connected) {
+            const status = document.getElementById(statusId);
+            status.textContent = connected ? 'Connected' : 'Disconnected';
+            status.className = connected ? 'status connected' : 'status disconnected';
+        }
+
+        // Test weather streaming
+        async function testWeatherStream() {
+            const city = document.getElementById('cityInput').value;
+            const logId = 'weatherLog';
+            const statusId = 'weatherStatus';
+            const btn = document.getElementById('weatherBtn');
+
+            try {
+                btn.disabled = true;
+                logEvent(logId, 'status', {message: 'Getting OAuth token...'});
+                
+                const token = await getAccessToken();
+                logEvent(logId, 'status', {message: 'Token obtained, connecting to stream...'});
+
+                const url = `http://localhost:8000/stream/weather?city=${encodeURIComponent(city)}&token=${encodeURIComponent(token)}`;
+                const eventSource = new EventSource(url);
+
+                updateStatus(statusId, true);
+
+                eventSource.addEventListener('start', (e) => {
+                    logEvent(logId, 'start', JSON.parse(e.data));
+                });
+
+                eventSource.addEventListener('progress', (e) => {
+                    logEvent(logId, 'progress', JSON.parse(e.data));
+                });
+
+                eventSource.addEventListener('status', (e) => {
+                    logEvent(logId, 'status', JSON.parse(e.data));
+                });
+
+                eventSource.addEventListener('complete', (e) => {
+                    logEvent(logId, 'complete', JSON.parse(e.data));
+                    eventSource.close();
+                    updateStatus(statusId, false);
+                    btn.disabled = false;
+                });
+
+                eventSource.addEventListener('error', (e) => {
+                    if (e.data) {
+                        logEvent(logId, 'error', JSON.parse(e.data));
+                    } else {
+                        logEvent(logId, 'error', {message: 'Connection error'});
+                    }
+                    eventSource.close();
+                    updateStatus(statusId, false);
+                    btn.disabled = false;
+                });
+
+                eventSource.onerror = (error) => {
+                    logEvent(logId, 'error', {message: 'Stream connection error'});
+                    eventSource.close();
+                    updateStatus(statusId, false);
+                    btn.disabled = false;
+                };
+
+            } catch (error) {
+                logEvent(logId, 'error', {message: error.message});
+                btn.disabled = false;
+                updateStatus(statusId, false);
+            }
+        }
+
+        // Test file streaming
+        async function testFileStream() {
+            const operation = document.getElementById('operationSelect').value;
+            const filepath = document.getElementById('filepathInput').value;
+            const logId = 'fileLog';
+            const statusId = 'fileStatus';
+            const btn = document.getElementById('fileBtn');
+
+            try {
+                btn.disabled = true;
+                logEvent(logId, 'status', {message: 'Getting OAuth token...'});
+                
+                const token = await getAccessToken();
+                logEvent(logId, 'status', {message: 'Token obtained, connecting to stream...'});
+
+                let url = `http://localhost:8000/stream/file?operation=${operation}&filepath=${encodeURIComponent(filepath)}&token=${encodeURIComponent(token)}`;
+                if (operation === 'write') {
+                    url += `&content=${encodeURIComponent('Hello from SSE streaming test! Time: ' + new Date().toISOString())}`;
+                }
+
+                const eventSource = new EventSource(url);
+
+                updateStatus(statusId, true);
+
+                eventSource.addEventListener('start', (e) => {
+                    logEvent(logId, 'start', JSON.parse(e.data));
+                });
+
+                eventSource.addEventListener('progress', (e) => {
+                    logEvent(logId, 'progress', JSON.parse(e.data));
+                });
+
+                eventSource.addEventListener('status', (e) => {
+                    logEvent(logId, 'status', JSON.parse(e.data));
+                });
+
+                eventSource.addEventListener('complete', (e) => {
+                    logEvent(logId, 'complete', JSON.parse(e.data));
+                    eventSource.close();
+                    updateStatus(statusId, false);
+                    btn.disabled = false;
+                });
+
+                eventSource.addEventListener('error', (e) => {
+                    if (e.data) {
+                        logEvent(logId, 'error', JSON.parse(e.data));
+                    } else {
+                        logEvent(logId, 'error', {message: 'Connection error'});
+                    }
+                    eventSource.close();
+                    updateStatus(statusId, false);
+                    btn.disabled = false;
+                });
+
+                eventSource.onerror = (error) => {
+                    logEvent(logId, 'error', {message: 'Stream connection error'});
+                    eventSource.close();
+                    updateStatus(statusId, false);
+                    btn.disabled = false;
+                };
+
+            } catch (error) {
+                logEvent(logId, 'error', {message: error.message});
+                btn.disabled = false;
+                updateStatus(statusId, false);
+            }
+        }
+    </script>
+</body>
+</html>
