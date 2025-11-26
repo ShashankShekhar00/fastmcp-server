@@ -1,107 +1,89 @@
-<div align="center">
+# FastMCP Server
 
-# 🚀 FastMCP Server
-
-### Production-Ready Model Context Protocol Implementation
+**Production-Ready Model Context Protocol Implementation with OAuth 2.0**
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.120-009688.svg)](https://fastapi.tiangolo.com/)
 [![FastMCP](https://img.shields.io/badge/FastMCP-2.13-purple.svg)](https://github.com/jlowin/fastmcp)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![OAuth 2.0](https://img.shields.io/badge/OAuth-2.0-green.svg)](https://oauth.net/2/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-*Enterprise-grade MCP server with OAuth 2.0, Docker support, and secure tool execution*
-
-[Features](#-features) • [Quick Start](#-quick-start) • [Docker](#-docker-deployment) • [Documentation](#-documentation) • [Architecture](#-architecture)
-
-![MCP Server Demo](https://via.placeholder.com/800x400/1a1a1a/ffffff?text=FastMCP+Server+Demo)
-
-</div>
+A production-ready Model Context Protocol (MCP) server enabling AI agents to execute tools securely. Built with FastMCP, featuring OAuth 2.0 authentication, SQLite database, and comprehensive security controls.
 
 ---
 
-## 📖 Overview
+## Overview
 
-A **production-ready Model Context Protocol (MCP) server** that enables AI agents to execute tools securely with real-time progress feedback. Built with FastMCP and FastAPI, featuring OAuth 2.0 authentication, Server-Sent Events (SSE) streaming, and comprehensive security controls.
+This MCP server provides 4 secure tools for AI agents:
+- **File Operations** (public) - Secure file read/write with path validation
+- **Weather** (public) - OpenWeatherMap API integration
+- **Notes** (OAuth-protected) - Personal notes management with tagging
+- **Profile** (OAuth-protected) - User profile management
 
-Perfect for building AI-powered applications that need secure file operations, weather data integration, and real-time streaming capabilities.
+### Key Features
 
-## ✨ Features
+**Security First**
+- OAuth 2.0 authentication with Auth0 JWT validation
+- Path traversal protection and file validation
+- User data isolation
+- Environment-based secrets
 
-### 🔐 **Enterprise Security**
-- **OAuth 2.0 Authentication** with Auth0 JWT validation
-- Path traversal & SQL injection protection
-- File extension & size validation
-- Token redaction in logs
-- Configurable allowlists
-
-### 📡 **Real-Time Streaming**
-- **Server-Sent Events (SSE)** for live progress updates
-- No rate limiting on streams
-- Progress tracking (validation → execution → completion)
-- Interactive web-based test interface
-
-### 🛠️ **Built-in Tools**
-- **📁 File Operations**: Secure read/write with allowlist validation
-- **🌤️ Weather API**: OpenWeatherMap integration with caching
-
-### 🚀 **Production Ready**
-- 🐳 **Docker & Docker Compose** support
-- FastMCP protocol implementation
+**Production Ready**
+- Docker and Docker Compose support
+- Multi-stage builds (~150MB image)
+- Health monitoring
 - Comprehensive error handling
-- Health checks and monitoring
-- Multi-stage builds for optimized images
 - Structured logging
-- Docker support
-- Health checks & monitoring
 
-## 🎯 Quick Start
+**Database Integration**
+- SQLite with SQLAlchemy ORM
+- 3 models: User, Profile, Note
+- Context-managed sessions
 
-### Option 1: Docker (Recommended) 🐳
+---
 
-**Prerequisites:**
-- Docker 20.10+
-- Docker Compose 2.0+
+## Quick Start
+
+### Option 1: Docker (Recommended)
+
+**Prerequisites:** Docker 20.10+ and Docker Compose 2.0+
 
 ```bash
-# 1. Clone the repository
+# Clone repository
 git clone https://github.com/ShashankShekhar00/fastmcp-server.git
 cd fastmcp-server
 
-# 2. Configure environment
+# Configure environment
 cp .env.example .env
-# Edit .env with your credentials
+# Edit .env with your Auth0 and OpenWeatherMap credentials
 
-# 3. Start with Docker Compose
+# Start server
 docker compose up --build -d
 
-# 4. View logs
+# View logs
 docker compose logs -f
 
-# 5. Check health
+# Check health
 curl http://localhost:8000/mcp
 ```
 
-**See [DOCKER.md](DOCKER.md) for complete Docker documentation.**
+See [DOCKER.md](DOCKER.md) for complete Docker documentation.
 
 ---
 
 ### Option 2: Local Development
 
-**Prerequisites:**
-- Python 3.12+
-- Auth0 account (free tier works)
-- OpenWeatherMap API key (free)
+**Prerequisites:** Python 3.12+, Auth0 account, OpenWeatherMap API key
 
 ```bash
-# Clone the repository
+# Clone and setup
 git clone https://github.com/ShashankShekhar00/fastmcp-server.git
 cd fastmcp-server
 
 # Create virtual environment
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+.venv\Scripts\activate  # Windows
+# source .venv/bin/activate  # Linux/Mac
 
 # Install dependencies
 pip install -r requirements.txt
@@ -110,169 +92,198 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edit .env with your credentials
 
-# Run the server
+# Run server
 python -m src.server_oauth
 ```
 
-The server will start on `http://localhost:8000`
+Server starts on `http://localhost:8000`
 
 ---
+## Configuration
 
-### Configuration
-
-Create a `.env` file with your credentials:
+Create `.env` file with your credentials:
 
 ```env
 # OAuth 2.0 (Auth0)
-OAUTH_DOMAIN=your-domain.auth0.com
+OAUTH_DOMAIN=dev-example.auth0.com
 OAUTH_CLIENT_ID=your_client_id
 OAUTH_CLIENT_SECRET=your_client_secret
 OAUTH_AUDIENCE=https://api.mcp-server.com
+OAUTH_TOKEN_URL=https://dev-example.auth0.com/oauth/token
+OAUTH_JWKS_URL=https://dev-example.auth0.com/.well-known/jwks.json
+OAUTH_ISSUER=https://dev-example.auth0.com/
 
-# OpenWeatherMap
+# OpenWeatherMap API
 OPENWEATHER_API_KEY=your_api_key
 
+# File Operations Security
+ALLOWED_FILE_PATHS=C:\Users\YourName\Desktop,C:\Users\YourName\Downloads
+MAX_FILE_SIZE_MB=10
+ALLOWED_FILE_EXTENSIONS=.txt,.json,.csv,.md
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=8000
+ENVIRONMENT=development
+LOG_LEVEL=INFO
+
+# Database
+DATABASE_URL=sqlite:///./mcp_server.db
+
 # Security
-ALLOWED_FILE_PATHS=/app/data,/app/uploads,test_output
 SECRET_KEY=your_secret_key_here
 ```
 
-### Run the Server
+---
 
-```bash
-python -m src.server
-```
+## MCP Tools
 
-The server will start on `http://localhost:8000`
+### Public Tools (No Authentication Required)
 
-## 🎬 Demo
+#### 1. File Operations
 
-### Interactive Test Interface
+Secure file read/write with path validation.
 
-Visit `http://localhost:8000/test` to access the interactive SSE streaming demo:
-
-- **Weather Streaming**: Real-time weather data with progress updates
-- **File Operations**: Secure file read/write with live feedback
-- **OAuth Integration**: Automatic token management
-
-### API Endpoints
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /` | Server info and available endpoints |
-| `GET /health` | Health check with auth status |
-| `GET /docs` | Interactive API documentation |
-| `GET /sse` | MCP protocol endpoint |
-| `GET /stream/weather` | Real-time weather streaming |
-| `GET /stream/file` | Real-time file operations |
-| `GET /test` | Interactive test interface |
-
-## 📚 Documentation
-
-### Using the MCP Tools
-
-#### Weather Tool
-
-```python
-# Request weather data for a city
+```json
 {
-  "tool": "weather",
-  "arguments": {
-    "city": "London"
-  }
-}
-
-# Response includes:
-# - Temperature (Celsius & Fahrenheit)
-# - Humidity, pressure, wind speed
-# - Weather description
-# - Timestamps
-```
-
-#### File Operations Tool
-
-```python
-# Read a file
-{
-  "tool": "file_operations",
+  "name": "file_operations",
   "arguments": {
     "operation": "read",
-    "filepath": "test_output/data.txt"
+    "filepath": "C:\\Users\\YourName\\Desktop\\example.txt"
   }
 }
+```
 
-# Write a file
+```json
 {
-  "tool": "file_operations",
+  "name": "file_operations",
   "arguments": {
     "operation": "write",
-    "filepath": "test_output/output.txt",
+    "filepath": "C:\\Users\\YourName\\Desktop\\output.txt",
     "content": "Hello, World!"
   }
 }
 ```
 
-### SSE Streaming
+**Features:**
+- Path allowlist validation
+- File extension whitelist
+- 10MB size limit
+- Metadata extraction
 
-Connect to streaming endpoints to receive real-time progress:
+#### 2. Weather
 
-```javascript
-const eventSource = new EventSource(
-  'http://localhost:8000/stream/weather?city=London&token=YOUR_TOKEN'
-);
+OpenWeatherMap API integration.
 
-eventSource.addEventListener('progress', (e) => {
-  const data = JSON.parse(e.data);
-  console.log(`${data.stage}: ${data.progress}%`);
-});
-
-eventSource.addEventListener('complete', (e) => {
-  const data = JSON.parse(e.data);
-  console.log('Result:', data.result);
-});
+```json
+{
+  "name": "weather",
+  "arguments": {
+    "city": "London"
+  }
+}
 ```
 
-## 🏗️ Architecture
+**Returns:** Temperature, humidity, wind speed, weather conditions
+
+### OAuth-Protected Tools (Requires Bearer Token)
+
+#### 3. Notes
+
+Personal notes management with CRUD operations.
+
+```json
+{
+  "name": "notes",
+  "arguments": {
+    "action": "create",
+    "content": "My note",
+    "title": "Important",
+    "tags": ["work", "urgent"]
+  }
+}
+```
+
+**Operations:** create, get, list, update, delete, archive, unarchive, pin, unpin
+
+#### 4. Profile
+
+User profile management.
+
+```json
+{
+  "name": "profile",
+  "arguments": {
+    "action": "create",
+    "name": "John Doe",
+    "bio": "Software Developer"
+  }
+}
+```
+
+**Operations:** get, create, update, delete
+
+---
+## Project Structure
 
 ```
 fastmcp-server/
 ├── src/
-│   ├── auth/              # OAuth 2.0 & JWT validation
-│   ├── middleware/        # Auth & rate limiting
-│   ├── tools/             # MCP tools (file ops, weather)
-│   ├── utils/             # Errors, logging, validators, SSE
-│   └── server.py          # Main FastAPI + FastMCP server
-├── scripts/               # Testing & utility scripts
-├── tests/                 # Unit & integration tests
-└── test_sse.html          # Interactive demo page
+│   ├── server_oauth.py        # Main FastMCP server (ACTIVE)
+│   ├── config.py              # Configuration management
+│   ├── auth/                  # OAuth 2.0 & JWT validation
+│   ├── database/              # SQLAlchemy session management
+│   ├── models/                # User, Profile, Note models
+│   ├── services/              # Business logic layer
+│   ├── tools/                 # 4 MCP tools
+│   └── utils/                 # Errors, logging, validators
+├── scripts/                   # Testing & utility scripts
+├── Dockerfile                 # Multi-stage container build
+├── docker-compose.yml         # Orchestration
+├── healthcheck.py             # Docker health monitoring
+└── requirements.txt           # Python dependencies
 ```
 
 ### Key Components
 
-- **FastMCP**: MCP protocol implementation
-- **FastAPI**: Web framework & API endpoints
-- **Auth0**: OAuth 2.0 authentication provider
-- **JWT Validation**: Token verification with JWKS
-- **SSE Manager**: Real-time event streaming
-- **Tool Wrappers**: Progress tracking for tool execution
+- **FastMCP** - MCP protocol implementation (HTTP transport)
+- **SQLAlchemy** - ORM with SQLite database
+- **Auth0** - OAuth 2.0 authentication provider
+- **JWT Validation** - Token verification with JWKS
+- **Docker** - Containerization with multi-stage builds
 
-## 🧪 Testing
+---
+
+## Testing
 
 ```bash
-# Run all tests
-pytest
-
 # Test OAuth flow
 python scripts/test_oauth.py
+
+# Test OAuth-protected tools
+python scripts/test_oauth_tools.py
 
 # Test weather API
 python scripts/test_weather_api.py
 
-# Test SSE streaming
-python scripts/test_sse_streaming.py
+# Test file operations
+python scripts/test_tools.py
+
+# Use tools locally
+python scripts/use_tools_locally.py
 ```
 
-## 🐳 Docker Deployment
+---
+
+## Docker Deployment
+
+### Using Docker Compose
+
+```bash
+docker compose up --build -d
+```
+
+### Manual Docker Build
 
 ```bash
 # Build image
@@ -282,62 +293,87 @@ docker build -t fastmcp-server .
 docker run -p 8000:8000 --env-file .env fastmcp-server
 ```
 
-## 🔒 Security Features
+### Health Check
 
-- ✅ OAuth 2.0 JWT authentication
-- ✅ Path traversal protection
-- ✅ SQL injection prevention
-- ✅ File extension validation
-- ✅ Size limits (10MB default)
-- ✅ Configurable allowlists
-- ✅ Token redaction in logs
-- ✅ CORS configuration
-- ✅ Rate limiting support
+```bash
+curl http://localhost:8000/mcp
+```
 
-## 📊 Tech Stack
-
-| Component | Technology |
-|-----------|------------|
-| **Framework** | FastAPI 0.120 |
-| **Protocol** | FastMCP 2.13 |
-| **Auth** | Auth0 OAuth 2.0 |
-| **Streaming** | Server-Sent Events |
-| **API** | OpenWeatherMap |
-| **Language** | Python 3.12+ |
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [FastMCP](https://github.com/jlowin/fastmcp) - MCP protocol implementation
-- [FastAPI](https://fastapi.tiangolo.com/) - Modern web framework
-- [Auth0](https://auth0.com/) - Authentication platform
-- [OpenWeatherMap](https://openweathermap.org/) - Weather data API
-
-## 📧 Contact
-
-**Shashank Shekhar** - [@ShashankShekhar00](https://github.com/ShashankShekhar00)
-
-Project Link: [https://github.com/ShashankShekhar00/fastmcp-server](https://github.com/ShashankShekhar00/fastmcp-server)
+See [DOCKER.md](DOCKER.md) for advanced Docker configuration, deployment options, and troubleshooting.
 
 ---
 
-<div align="center">
+## Security Features
 
-**⭐ Star this repo if you find it helpful!**
+- OAuth 2.0 JWT authentication with Auth0
+- Path traversal protection
+- File extension validation (whitelist)
+- File size limits (10MB default)
+- Configurable path allowlists
+- User data isolation
+- Token redaction in logs
+- Environment-based secrets
+- Non-root Docker user
 
-Made with ❤️ by [Shashank Shekhar](https://github.com/ShashankShekhar00)
+---
 
-</div>
+## Technology Stack
+
+| Component | Technology |
+|-----------|------------|
+| Protocol | FastMCP 2.13 |
+| Language | Python 3.12+ |
+| Database | SQLite + SQLAlchemy |
+| Auth | OAuth 2.0 (Auth0) |
+| Container | Docker + Docker Compose |
+| APIs | OpenWeatherMap |
+
+---
+
+## Documentation
+
+- **[README.md](README.md)** - This file (quick start)
+- **[PROJECT_INVENTORY.md](PROJECT_INVENTORY.md)** - Complete project overview
+- **[DOCKER.md](DOCKER.md)** - Docker deployment guide
+- **[DOCKER_SETUP.md](DOCKER_SETUP.md)** - Quick Docker setup
+- **[DOCKER_QUICKREF.md](DOCKER_QUICKREF.md)** - Docker command reference
+- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Testing documentation
+
+---
+
+## Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Acknowledgments
+
+- [FastMCP](https://github.com/jlowin/fastmcp) - MCP protocol implementation
+- [Auth0](https://auth0.com/) - Authentication platform
+- [OpenWeatherMap](https://openweathermap.org/) - Weather data API
+- [SQLAlchemy](https://www.sqlalchemy.org/) - Python SQL toolkit
+
+---
+
+## Contact
+
+**Shashank Shekhar**
+- GitHub: [@ShashankShekhar00](https://github.com/ShashankShekhar00)
+- Repository: [fastmcp-server](https://github.com/ShashankShekhar00/fastmcp-server)
+
+---
+
+*Production-ready MCP server with OAuth 2.0, Docker support, and comprehensive security controls.*
