@@ -9,10 +9,11 @@
 [![FastMCP](https://img.shields.io/badge/FastMCP-2.13-purple.svg)](https://github.com/jlowin/fastmcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![OAuth 2.0](https://img.shields.io/badge/OAuth-2.0-green.svg)](https://oauth.net/2/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
-*Enterprise-grade MCP server with OAuth 2.0, real-time SSE streaming, and secure tool execution*
+*Enterprise-grade MCP server with OAuth 2.0, Docker support, and secure tool execution*
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Demo](#-demo) • [Documentation](#-documentation) • [Architecture](#-architecture)
+[Features](#-features) • [Quick Start](#-quick-start) • [Docker](#-docker-deployment) • [Documentation](#-documentation) • [Architecture](#-architecture)
 
 ![MCP Server Demo](https://via.placeholder.com/800x400/1a1a1a/ffffff?text=FastMCP+Server+Demo)
 
@@ -46,21 +47,52 @@ Perfect for building AI-powered applications that need secure file operations, w
 - **🌤️ Weather API**: OpenWeatherMap integration with caching
 
 ### 🚀 **Production Ready**
+- 🐳 **Docker & Docker Compose** support
 - FastMCP protocol implementation
 - Comprehensive error handling
+- Health checks and monitoring
+- Multi-stage builds for optimized images
 - Structured logging
 - Docker support
 - Health checks & monitoring
 
 ## 🎯 Quick Start
 
-### Prerequisites
+### Option 1: Docker (Recommended) 🐳
 
+**Prerequisites:**
+- Docker 20.10+
+- Docker Compose 2.0+
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/ShashankShekhar00/fastmcp-server.git
+cd fastmcp-server
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your credentials
+
+# 3. Start with Docker Compose
+docker compose up --build -d
+
+# 4. View logs
+docker compose logs -f
+
+# 5. Check health
+curl http://localhost:8000/mcp
+```
+
+**See [DOCKER.md](DOCKER.md) for complete Docker documentation.**
+
+---
+
+### Option 2: Local Development
+
+**Prerequisites:**
 - Python 3.12+
 - Auth0 account (free tier works)
 - OpenWeatherMap API key (free)
-
-### Installation
 
 ```bash
 # Clone the repository
@@ -77,7 +109,14 @@ pip install -r requirements.txt
 # Configure environment
 cp .env.example .env
 # Edit .env with your credentials
+
+# Run the server
+python -m src.server_oauth
 ```
+
+The server will start on `http://localhost:8000`
+
+---
 
 ### Configuration
 

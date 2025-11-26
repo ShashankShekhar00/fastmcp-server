@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastmcp-server
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      # Server Configuration
+      - HOST=0.0.0.0
+      - PORT=8000
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      
+      # OAuth 2.0 Configuration (Auth0)
+      - OAUTH_DOMAIN=${OAUTH_DOMAIN}
+      - OAUTH_AUDIENCE=${OAUTH_AUDIENCE}
+      - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}
+      - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
+      - OAUTH_TOKEN_URL=${OAUTH_TOKEN_URL}
+      - OAUTH_JWKS_URL=${OAUTH_JWKS_URL}
+      - OAUTH_ALGORITHMS=${OAUTH_ALGORITHMS:-RS256}
+      - OAUTH_ISSUER=${OAUTH_ISSUER}
+      
+      # OAuth 2.1 Security Settings
+      - OAUTH_ACCESS_TOKEN_EXPIRY=${OAUTH_ACCESS_TOKEN_EXPIRY:-900}
+      - OAUTH_REFRESH_TOKEN_EXPIRY=${OAUTH_REFRESH_TOKEN_EXPIRY:-604800}
+      - OAUTH_REQUIRE_PKCE=${OAUTH_REQUIRE_PKCE:-true}
+      - OAUTH_ALLOW_IMPLICIT=${OAUTH_ALLOW_IMPLICIT:-false}
+      
+      # OpenWeatherMap API
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+      - OPENWEATHER_BASE_URL=${OPENWEATHER_BASE_URL:-https://api.openweathermap.org/data/2.5}
+      - OPENWEATHER_TIMEOUT=${OPENWEATHER_TIMEOUT:-10}
+      
+      # File Operations Security
+      - ALLOWED_FILE_PATHS=${ALLOWED_FILE_PATHS}
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-10}
+      - ALLOWED_FILE_EXTENSIONS=${ALLOWED_FILE_EXTENSIONS:-.txt,.json,.csv,.md}
+      
+      # CORS Configuration
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      
+      # FastMCP Transport
+      - TRANSPORT_MODE=${TRANSPORT_MODE:-http}
+      
+      # Rate Limiting
+      - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS:-100}
+      - RATE_LIMIT_WINDOW_SECONDS=${RATE_LIMIT_WINDOW_SECONDS:-3600}
+      
+      # Security
+      - SECRET_KEY=${SECRET_KEY}
+      - HTTPS_ONLY=${HTTPS_ONLY:-false}
+      
+      # Database Configuration
+      - DATABASE_URL=sqlite:////app/data/mcp_server.db
+      - DATABASE_ECHO=${DATABASE_ECHO:-false}
+      
+      # User Data Storage
+      - USER_DATA_DIR=/app/data
+    volumes:
+      # Persist database and user data
+      - mcp-data:/app/data
+      # Persist logs
+      - mcp-logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "/app/healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - mcp-network
+
+volumes:
+  mcp-data:
+    driver: local
+  mcp-logs:
+    driver: local
+
+networks:
+  mcp-network:
+    driver: bridge

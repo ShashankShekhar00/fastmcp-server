@@ -318,3 +318,47 @@ def format_success_response(result: Any, request_id: Optional[str] = None) -> Di
         "result": result,
         "id": request_id
     }
+
+
+# Database Errors
+
+class DatabaseError(MCPError):
+    """General database error."""
+    
+    def __init__(self, message: str = "Database error", data: Optional[Dict] = None):
+        super().__init__(MCPError.INTERNAL_ERROR, message, data)
+
+
+class ResourceNotFoundError(MCPError):
+    """Requested resource not found in database."""
+    
+    def __init__(self, resource_type: str, resource_id: Any, data: Optional[Dict] = None):
+        message = f"{resource_type} not found: {resource_id}"
+        data = data or {}
+        data.update({
+            'resource_type': resource_type,
+            'resource_id': str(resource_id)
+        })
+        super().__init__(MCPError.FILE_NOT_FOUND, message, data)
+
+
+class DuplicateResourceError(MCPError):
+    """Resource already exists."""
+    
+    def __init__(self, resource_type: str, message: str = None, data: Optional[Dict] = None):
+        if not message:
+            message = f"{resource_type} already exists"
+        data = data or {}
+        data['resource_type'] = resource_type
+        super().__init__(MCPError.INVALID_PARAMS, message, data)
+
+
+class ValidationError(MCPError):
+    """Data validation failed."""
+    
+    def __init__(self, message: str, errors: Optional[list] = None, data: Optional[Dict] = None):
+        data = data or {}
+        if errors:
+            data['validation_errors'] = errors
+        super().__init__(MCPError.INVALID_PARAMS, message, data)
+

@@ -1,0 +1,13 @@
+{
+	"servers": {
+		"lund09": {
+			"url": "http://localhost:8000/mcp",
+			"type": "http"
+		},
+		"my-mcp-server-d4fd76d1": {
+			"url": "http://localhost:8000/mcp",
+			"type": "http"
+		}
+	},
+	"inputs": []
+}

@@ -77,6 +77,16 @@ class Config:
         # Security
         self.SECRET_KEY = self._get_required("SECRET_KEY")
         self.HTTPS_ONLY = os.getenv("HTTPS_ONLY", "false").lower() == "true"
+        
+        # Database Configuration
+        self.DATABASE_URL = os.getenv(
+            "DATABASE_URL",
+            "sqlite:///./mcp_server.db"  # Default to SQLite
+        )
+        self.DATABASE_ECHO = os.getenv("DATABASE_ECHO", "false").lower() == "true"
+        
+        # User Data Storage
+        self.USER_DATA_DIR = os.getenv("USER_DATA_DIR", "user_data")
     
     def _get_required(self, key: str) -> str:
         """
